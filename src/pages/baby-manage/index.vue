@@ -70,8 +70,35 @@
         </view>
         <view class="dialog-actions">
           <button class="dialog-btn dialog-btn--cancel" @tap="closeDialog">取消</button>
-          <button class="dialog-btn dialog-btn--confirm" @tap="handleSaveBaby">保存</button>
+          <button
+            class="dialog-btn dialog-btn--confirm"
+            :class="{ 'dialog-btn--success': showSuccess }"
+            @tap="handleSaveBaby"
+          >
+            <view class="ripple-container">
+              <view
+                v-for="r in ripples"
+                :key="r.id"
+                class="ripple"
+                :style="{ left: r.x + 'px', top: r.y + 'px' }"
+              />
+            </view>
+            <text v-if="showSuccess">✓ 成功</text>
+            <text v-else>保存</text>
+          </button>
         </view>
+      </view>
+    </view>
+
+    <!-- 粒子效果容器 -->
+    <view class="particle-container" v-if="particles.length > 0">
+      <view
+        v-for="p in particles"
+        :key="p.id"
+        :class="p.type === 'star' ? 'star' : p.type === 'confetti' ? 'confetti' : 'particle'"
+        :style="p.style"
+      >
+        <template v-if="p.type === 'star'">{{ p.style.content }}</template>
       </view>
     </view>
   </view>
@@ -80,18 +107,19 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useBabyStore } from '@/stores/baby'
+import { useStatusBar } from '@/composables/useLayout'
+import { useSaveEffect, useRipple } from '@/composables/useSaveEffect'
 import { formatDate } from '@/utils/date'
 import type { Baby } from '@/types'
 
 const babyStore = useBabyStore()
-
-// 计算顶部栏高度
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight || 0
-const headerTop = ref(statusBarHeight + 12)
+const { headerTop } = useStatusBar()
+const { particles, triggerSaveEffect } = useSaveEffect()
+const { ripples, createRipple } = useRipple()
 
 const editingBaby = ref<Baby | null>(null)
 const showDialog = ref(false)
+const showSuccess = ref(false)
 
 const dialogForm = reactive({
   name: '',
@@ -127,10 +155,15 @@ function onBirthdateChange(e: any) {
   dialogForm.birthdateText = formatDate(new Date(e.detail.value).getTime(), 'YYYY年M月D日')
 }
 
-async function handleSaveBaby() {
+async function handleSaveBaby(e: any) {
   if (!dialogForm.name) {
     uni.showToast({ title: '请输入宝宝名字', icon: 'none' })
     return
+  }
+
+  // 创建涟漪效果
+  if (e?.x !== undefined && e?.y !== undefined) {
+    createRipple({ clientX: e.x, clientY: e.y } as any)
   }
 
   const birthdate = dialogForm.birthdate
@@ -144,13 +177,25 @@ async function handleSaveBaby() {
         birthdate,
         gender: dialogForm.gender || undefined
       } as any)
-      uni.showToast({ title: '已更新', icon: 'success' })
-      closeDialog()
     } else {
       await babyStore.createBaby(dialogForm.name, birthdate, dialogForm.gender)
-      uni.showToast({ title: '添加成功', icon: 'success' })
-      closeDialog()
     }
+
+    // 显示成功状态和粒子特效
+    showSuccess.value = true
+    const btnRect = e?.target?.getBoundingClientRect?.()
+    if (btnRect) {
+      triggerSaveEffect({
+        clientX: btnRect.left + btnRect.width / 2,
+        clientY: btnRect.top + btnRect.height / 2
+      } as any)
+    }
+
+    uni.showToast({ title: editingBaby.value ? '已更新' : '添加成功', icon: 'success' })
+    setTimeout(() => {
+      showSuccess.value = false
+      closeDialog()
+    }, 600)
   } catch (e: any) {
     uni.showToast({ title: e.message || '操作失败', icon: 'none' })
   }
@@ -323,6 +368,7 @@ function goBack() {
   bottom: 0;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -436,9 +482,120 @@ function goBack() {
 .dialog-btn--confirm {
   background: linear-gradient(135deg, var(--primary), var(--primary-fixed-dim));
   color: var(--on-primary);
+  position: relative;
+  overflow: hidden;
 }
 
 .dialog-btn--confirm:active {
   opacity: 0.85;
+}
+
+.dialog-btn--success {
+  background: linear-gradient(135deg, #1DD1A1, #10AC84);
+  animation: success-pop 0.4s ease-out;
+}
+
+@keyframes success-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* 涟漪效果 */
+.ripple-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.ripple {
+  position: absolute;
+  width: 30rpx;
+  height: 30rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%) scale(0);
+  animation: ripple-expand 0.5s ease-out forwards;
+}
+
+@keyframes ripple-expand {
+  to {
+    transform: translate(-50%, -50%) scale(6);
+    opacity: 0;
+  }
+}
+
+/* 粒子效果容器 */
+.particle-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.particle {
+  position: absolute;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  animation: particle-fly 0.7s ease-out forwards;
+}
+
+@keyframes particle-fly {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(0.2);
+  }
+}
+
+.confetti {
+  position: absolute;
+  width: 14rpx;
+  height: 14rpx;
+  animation: confetti-fall 0.9s ease-out forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
+  }
+}
+
+.star {
+  position: absolute;
+  font-size: 32rpx;
+  animation: star-pop 0.5s ease-out forwards;
+}
+
+@keyframes star-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2) rotate(180deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6) rotate(360deg);
+  }
 }
 </style>

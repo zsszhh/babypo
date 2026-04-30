@@ -176,17 +176,15 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useRecordStore } from '@/stores/record'
 import { useBabyStore } from '@/stores/baby'
+import { useStatusBar, useNavSwitch } from '@/composables/useLayout'
 import { POOP_TYPES, POOP_COLORS, POOP_AMOUNTS } from '@/constants'
 import { formatTime, getCalendarMonth, getWeekdayName } from '@/utils/date'
 import type { PoopRecord, PoopType, PoopColor, PoopAmount } from '@/types'
 
 const recordStore = useRecordStore()
 const babyStore = useBabyStore()
-
-// 计算顶部栏高度
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight || 0
-const headerTop = ref(statusBarHeight + 12)
+const { headerTop } = useStatusBar()
+const { handleSwitch } = useNavSwitch()
 
 const viewMode = ref<'month' | 'year'>('month')
 const currentYear = ref(new Date().getFullYear())
@@ -370,10 +368,6 @@ function addRecordForDate() {
 
 function goBack() {
   uni.navigateBack()
-}
-
-function handleSwitch(key: string) {
-  uni.reLaunch({ url: `/pages/${key}/index` })
 }
 </script>
 

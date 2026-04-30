@@ -10,7 +10,7 @@ import { computed } from 'vue'
 import { onLaunch } from '@dcloudio/uni-app'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
-import { STORAGE_KEYS } from '@/constants'
+import { updateRequestCache } from '@/utils/request'
 
 const settings = useSettingsStore()
 const auth = useAuthStore()
@@ -21,36 +21,39 @@ const themeStyle = computed(() => {
     : 'background-color: #f7faf8; color: #191c1a;'
 })
 
-// 应用启动时恢复登录态
 onLaunch(() => {
-  // 加载 Material Symbols 字体（App 端必须）
   // #ifdef APP-PLUS
   uni.loadFontFace({
     family: 'Material Symbols Outlined',
     source: 'url("/static/fonts/MaterialSymbolsOutlined.ttf")',
-    success: () => console.log('字体加载成功'),
-    fail: (err: any) => console.error('字体加载失败', err)
+    success: () => {},
+    fail: () => {}
   })
   // #endif
 
-  // 恢复登录态（各页面会根据 token 状态自行处理跳转）
-  auth.restoreSession()
-  console.log('App 启动，登录态:', auth.token ? '已登录' : '未登录')
+  if (auth.isLoggedIn()) {
+    updateRequestCache(auth.serverUrl, auth.token)
+  }
 })
 
 // 全局路由守卫：未登录时禁止访问非登录页
-// 注意：这里直接读取 storage，因为拦截器执行时 store 可能还未初始化
+// 直接读取 Pinia persist 的 Storage key，因为拦截器执行时 store 可能还未初始化
 const LOGIN_PAGE = '/pages/config/index'
+const AUTH_STORAGE_KEY = 'babypoop-auth'
 const routeHooks = ['navigateTo', 'redirectTo', 'reLaunch', 'switchTab'] as const
 routeHooks.forEach((hook) => {
   uni.addInterceptor(hook, {
     invoke(args: any) {
       const url = typeof args === 'string' ? args : args?.url || ''
-      // 白名单：config 页放行
       if (url === LOGIN_PAGE || url.startsWith(LOGIN_PAGE)) return true
-      // 未登录则跳转登录页（直接读 storage，避免 store 未初始化问题）
-      const token = uni.getStorageSync(STORAGE_KEYS.TOKEN)
-      if (!token) {
+      try {
+        const raw = uni.getStorageSync(AUTH_STORAGE_KEY)
+        const authData = raw ? JSON.parse(raw) : {}
+        if (!authData.token) {
+          uni.reLaunch({ url: LOGIN_PAGE })
+          return false
+        }
+      } catch {
         uni.reLaunch({ url: LOGIN_PAGE })
         return false
       }
@@ -99,6 +102,7 @@ routeHooks.forEach((hook) => {
   --surface-container: #e8f3ee;
   --surface-container-high: #ddebe4;
   --surface-container-highest: #d2e3db;
+  --surface-tint: #3b694c;
 
   /* 文字 */
   --on-surface: #191c1a;
@@ -162,6 +166,7 @@ routeHooks.forEach((hook) => {
   --surface-container: #3a3e3c;
   --surface-container-high: #454947;
   --surface-container-highest: #515452;
+  --surface-tint: #a2d3b2;
 
   /* 文字 */
   --on-surface: #f0f1ef;

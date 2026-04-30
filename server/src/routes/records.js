@@ -1,14 +1,14 @@
 const express = require('express')
-const { prepare, lastInsertId } = require('../db/init')
+const { prepare } = require('../db/init')
 const { authenticate } = require('../middleware/auth')
 const { AppError } = require('../middleware/errorHandler')
+const { formatRecord } = require('../utils/format')
 
 const router = express.Router()
 
 router.use(authenticate)
 
-// GET /records
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { baby_id = 1, limit = 100, offset = 0, start_date, end_date } = req.query
 
   let where = 'WHERE is_deleted = 0 AND baby_id = ?'
@@ -23,8 +23,11 @@ router.get('/', (req, res) => {
     params.push(Number(end_date))
   }
 
-  const countRow = prepare(`SELECT COUNT(*) as total FROM records ${where}`).get(params)
-  const records = prepare(`SELECT * FROM records ${where} ORDER BY timestamp DESC LIMIT ? OFFSET ?`).all([...params, Number(limit), Number(offset)])
+  const limitVal = Number(limit) || 100
+  const offsetVal = Number(offset) || 0
+
+  const countRow = await prepare(`SELECT COUNT(*) as total FROM records ${where}`).get(params)
+  const records = await prepare(`SELECT * FROM records ${where} ORDER BY timestamp DESC LIMIT ? OFFSET ?`).all([...params, limitVal, offsetVal])
 
   res.json({
     success: true,
@@ -35,9 +38,8 @@ router.get('/', (req, res) => {
   })
 })
 
-// GET /records/:id
-router.get('/:id', (req, res) => {
-  const record = prepare('SELECT * FROM records WHERE id = ? AND is_deleted = 0').get(req.params.id)
+router.get('/:id', async (req, res) => {
+  const record = await prepare('SELECT * FROM records WHERE id = ? AND is_deleted = 0').get(req.params.id)
   if (!record) throw new AppError(404, '记录不存在')
 
   res.json({
@@ -46,8 +48,7 @@ router.get('/:id', (req, res) => {
   })
 })
 
-// POST /records
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { babyId = 1, timestamp, type, color, amount, note, operatorName } = req.body
 
   if (!timestamp || !type || !operatorName) {
@@ -55,12 +56,12 @@ router.post('/', (req, res) => {
   }
 
   const now = Date.now()
-  prepare(`
+  const result = await prepare(`
     INSERT INTO records (baby_id, timestamp, type, color, amount, note, operator_name, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run([babyId, timestamp, type, color || null, amount || null, note || null, operatorName, now, now])
 
-  const record = prepare('SELECT * FROM records WHERE id = ?').get(lastInsertId())
+  const record = await prepare('SELECT * FROM records WHERE id = ?').get(result.lastID)
 
   res.status(201).json({
     success: true,
@@ -68,14 +69,13 @@ router.post('/', (req, res) => {
   })
 })
 
-// PUT /records/:id
-router.put('/:id', (req, res) => {
-  const existing = prepare('SELECT * FROM records WHERE id = ? AND is_deleted = 0').get(req.params.id)
+router.put('/:id', async (req, res) => {
+  const existing = await prepare('SELECT * FROM records WHERE id = ? AND is_deleted = 0').get(req.params.id)
   if (!existing) throw new AppError(404, '记录不存在')
 
   const { babyId, timestamp, type, color, amount, note, operatorName } = req.body
 
-  prepare(`
+  await prepare(`
     UPDATE records SET baby_id = ?, timestamp = ?, type = ?, color = ?, amount = ?, note = ?, operator_name = ?, updated_at = ?
     WHERE id = ?
   `).run([
@@ -96,32 +96,16 @@ router.put('/:id', (req, res) => {
   })
 })
 
-// DELETE /records/:id
-router.delete('/:id', (req, res) => {
-  const existing = prepare('SELECT * FROM records WHERE id = ? AND is_deleted = 0').get(req.params.id)
+router.delete('/:id', async (req, res) => {
+  const existing = await prepare('SELECT * FROM records WHERE id = ? AND is_deleted = 0').get(req.params.id)
   if (!existing) throw new AppError(404, '记录不存在')
 
-  prepare('UPDATE records SET is_deleted = 1, updated_at = ? WHERE id = ?').run([Date.now(), req.params.id])
+  await prepare('UPDATE records SET is_deleted = 1, updated_at = ? WHERE id = ?').run([Date.now(), req.params.id])
 
   res.json({
     success: true,
     message: '记录删除成功'
   })
 })
-
-function formatRecord(row) {
-  return {
-    id: row.id,
-    babyId: row.baby_id,
-    timestamp: row.timestamp,
-    type: row.type,
-    color: row.color,
-    amount: row.amount,
-    note: row.note,
-    operatorName: row.operator_name,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  }
-}
 
 module.exports = router

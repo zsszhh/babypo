@@ -6,13 +6,12 @@ const router = express.Router()
 
 router.use(authenticate)
 
-// GET /statistics/summary
-router.get('/summary', (req, res) => {
+router.get('/summary', async (req, res) => {
   const { baby_id = 1, days = 7 } = req.query
 
   const since = Date.now() - Number(days) * 24 * 60 * 60 * 1000
 
-  const rows = prepare(`
+  const rows = await prepare(`
     SELECT type, color, COUNT(*) as count
     FROM records
     WHERE baby_id = ? AND timestamp >= ? AND is_deleted = 0

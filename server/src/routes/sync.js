@@ -1,16 +1,16 @@
 const express = require('express')
-const { prepare, lastInsertId } = require('../db/init')
+const { prepare } = require('../db/init')
 const { authenticate } = require('../middleware/auth')
+const { formatRecord } = require('../utils/format')
 
 const router = express.Router()
 
 router.use(authenticate)
 
-// POST /sync/pull
-router.post('/pull', (req, res) => {
+router.post('/pull', async (req, res) => {
   const { lastSyncTime = 0 } = req.body
 
-  const records = prepare('SELECT * FROM records WHERE updated_at > ?').all([Number(lastSyncTime)])
+  const records = await prepare('SELECT * FROM records WHERE updated_at > ?').all([Number(lastSyncTime)])
 
   const deletedIds = records.filter(r => r.is_deleted).map(r => r.id)
   const activeRecords = records.filter(r => !r.is_deleted)
@@ -25,17 +25,16 @@ router.post('/pull', (req, res) => {
   })
 })
 
-// POST /sync/push
-router.post('/push', (req, res) => {
+router.post('/push', async (req, res) => {
   const { records = [] } = req.body
 
   const mapping = []
 
   for (const record of records) {
     if (record.id) {
-      const existing = prepare('SELECT * FROM records WHERE id = ?').get(record.id)
+      const existing = await prepare('SELECT * FROM records WHERE id = ?').get(record.id)
       if (existing && record.updatedAt > existing.updated_at) {
-        prepare(`
+        await prepare(`
           UPDATE records SET baby_id = ?, timestamp = ?, type = ?, color = ?, amount = ?, note = ?, operator_name = ?, updated_at = ?
           WHERE id = ?
         `).run([
@@ -45,7 +44,7 @@ router.post('/push', (req, res) => {
         ])
       }
     } else {
-      prepare(`
+      const result = await prepare(`
         INSERT INTO records (baby_id, timestamp, type, color, amount, note, operator_name, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run([
@@ -54,7 +53,7 @@ router.post('/push', (req, res) => {
         record.operatorName, record.createdAt || Date.now(), record.updatedAt || Date.now()
       ])
       if (record.localId) {
-        mapping.push({ localId: record.localId, serverId: lastInsertId() })
+        mapping.push({ localId: record.localId, serverId: result.lastID })
       }
     }
   }
@@ -64,20 +63,5 @@ router.post('/push', (req, res) => {
     data: { mapping }
   })
 })
-
-function formatRecord(row) {
-  return {
-    id: row.id,
-    babyId: row.baby_id,
-    timestamp: row.timestamp,
-    type: row.type,
-    color: row.color,
-    amount: row.amount,
-    note: row.note,
-    operatorName: row.operator_name,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  }
-}
 
 module.exports = router

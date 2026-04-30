@@ -120,21 +120,42 @@ function goBack() {
   uni.navigateBack()
 }
 
+/**
+ * 导出数据：App 端使用 uni.openDocument 打开文件，H5 端直接下载
+ */
 function showExportMenu() {
   uni.showActionSheet({
     itemList: ['导出 JSON', '导出 CSV'],
     success: (res) => {
       const format = res.tapIndex === 0 ? 'json' : 'csv'
-      const url = api.getExportUrl(format)
+      const url = api.getExportUrl(format, babyStore.activeBabyId)
       uni.downloadFile({
         url,
         success: (downloadRes) => {
-          uni.saveFile({
-            tempFilePath: downloadRes.tempFilePath,
-            success: () => {
-              uni.showToast({ title: '导出成功', icon: 'success' })
-            }
-          })
+          if (downloadRes.statusCode === 200) {
+            // #ifdef APP-PLUS
+            uni.openDocument({
+              filePath: downloadRes.tempFilePath,
+              showMenu: true,
+              success: () => {
+                uni.showToast({ title: '导出成功', icon: 'success' })
+              },
+              fail: () => {
+                uni.showToast({ title: '打开文件失败', icon: 'none' })
+              }
+            })
+            // #endif
+            // #ifdef H5
+            const link = document.createElement('a')
+            link.href = downloadRes.tempFilePath
+            link.download = `babypoop-export.${format}`
+            link.click()
+            uni.showToast({ title: '导出成功', icon: 'success' })
+            // #endif
+          }
+        },
+        fail: () => {
+          uni.showToast({ title: '下载失败，请检查网络', icon: 'none' })
         }
       })
     }
@@ -145,7 +166,7 @@ function showExportMenu() {
 <style scoped>
 .stats-page {
   min-height: 100vh;
-  background: var(--bg);
+  background: var(--surface);
 }
 
 .header {
@@ -153,7 +174,7 @@ function showExportMenu() {
   align-items: center;
   justify-content: space-between;
   padding: 100rpx 32rpx 24rpx;
-  background: var(--bg);
+  background: var(--surface);
 }
 
 .back-btn {
@@ -162,12 +183,13 @@ function showExportMenu() {
   color: var(--primary);
   padding: 8rpx 16rpx;
   border-radius: 8rpx;
-  background: var(--surface);
+  background: var(--surface-container);
 }
 
 .header-title {
   font-size: calc(36rpx * var(--font-scale));
   font-weight: 600;
+  color: var(--on-surface);
 }
 
 .export-btn {
@@ -175,7 +197,7 @@ function showExportMenu() {
   color: var(--primary);
   padding: 8rpx 16rpx;
   border-radius: 8rpx;
-  background: var(--surface);
+  background: var(--surface-container);
 }
 
 .days-toggle {
@@ -188,14 +210,14 @@ function showExportMenu() {
   padding: 12rpx 32rpx;
   border-radius: 999rpx;
   font-size: calc(28rpx * var(--font-scale));
-  background: var(--card-bg);
-  color: var(--text-secondary);
-  border: 2rpx solid var(--border);
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+  border: 2rpx solid var(--outline-variant);
 }
 
 .day-option.active {
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   border-color: var(--primary);
 }
 
@@ -207,11 +229,11 @@ function showExportMenu() {
 
 .summary-card {
   flex: 1;
-  background: var(--card-bg);
+  background: var(--surface-container);
   border-radius: 16rpx;
   padding: 32rpx;
   text-align: center;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
 }
 
 .summary-value {
@@ -222,7 +244,7 @@ function showExportMenu() {
 
 .summary-label {
   font-size: calc(24rpx * var(--font-scale));
-  color: var(--text-hint);
+  color: var(--on-surface-variant);
   margin-top: 8rpx;
 }
 
@@ -233,13 +255,13 @@ function showExportMenu() {
 .section-title {
   font-size: calc(32rpx * var(--font-scale));
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--on-surface);
   margin-bottom: 16rpx;
   display: block;
 }
 
 .bar-chart {
-  background: var(--card-bg);
+  background: var(--surface-container);
   border-radius: 12rpx;
   padding: 24rpx;
 }
@@ -254,20 +276,20 @@ function showExportMenu() {
 .bar-label {
   min-width: 120rpx;
   font-size: calc(24rpx * var(--font-scale));
-  color: var(--text-secondary);
+  color: var(--on-surface-variant);
 }
 
 .bar-track {
   flex: 1;
   height: 32rpx;
-  background: var(--bg);
+  background: var(--surface);
   border-radius: 16rpx;
   overflow: hidden;
 }
 
 .bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary-light), var(--primary));
+  background: linear-gradient(90deg, var(--primary-container), var(--primary));
   border-radius: 16rpx;
   transition: width 0.3s;
 }
@@ -280,7 +302,7 @@ function showExportMenu() {
   min-width: 48rpx;
   font-size: calc(24rpx * var(--font-scale));
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--on-surface);
   text-align: right;
 }
 </style>

@@ -1,15 +1,15 @@
 const express = require('express')
-const { prepare, lastInsertId } = require('../db/init')
+const { prepare } = require('../db/init')
 const { authenticate } = require('../middleware/auth')
 const { AppError } = require('../middleware/errorHandler')
+const { formatBaby } = require('../utils/format')
 
 const router = express.Router()
 
 router.use(authenticate)
 
-// GET /babies
-router.get('/', (req, res) => {
-  const babies = prepare('SELECT * FROM babies ORDER BY id ASC').all()
+router.get('/', async (req, res) => {
+  const babies = await prepare('SELECT * FROM babies ORDER BY id ASC').all()
 
   res.json({
     success: true,
@@ -17,8 +17,7 @@ router.get('/', (req, res) => {
   })
 })
 
-// POST /babies
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { name, birthdate, gender } = req.body
 
   if (!name || !birthdate) {
@@ -26,12 +25,12 @@ router.post('/', (req, res) => {
   }
 
   const now = Date.now()
-  prepare(`
+  const result = await prepare(`
     INSERT INTO babies (name, birthdate, gender, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?)
   `).run([name, birthdate, gender || null, now, now])
 
-  const baby = prepare('SELECT * FROM babies WHERE id = ?').get(lastInsertId())
+  const baby = await prepare('SELECT * FROM babies WHERE id = ?').get(result.lastID)
 
   res.status(201).json({
     success: true,
@@ -39,14 +38,13 @@ router.post('/', (req, res) => {
   })
 })
 
-// PUT /babies/:id
-router.put('/:id', (req, res) => {
-  const existing = prepare('SELECT * FROM babies WHERE id = ?').get(req.params.id)
+router.put('/:id', async (req, res) => {
+  const existing = await prepare('SELECT * FROM babies WHERE id = ?').get(req.params.id)
   if (!existing) throw new AppError(404, '宝宝不存在')
 
   const { name, birthdate, gender } = req.body
 
-  prepare(`
+  await prepare(`
     UPDATE babies SET name = ?, birthdate = ?, gender = ?, updated_at = ? WHERE id = ?
   `).run([
     name ?? existing.name,
@@ -56,23 +54,12 @@ router.put('/:id', (req, res) => {
     req.params.id
   ])
 
-  const baby = prepare('SELECT * FROM babies WHERE id = ?').get(req.params.id)
+  const baby = await prepare('SELECT * FROM babies WHERE id = ?').get(req.params.id)
 
   res.json({
     success: true,
     data: formatBaby(baby)
   })
 })
-
-function formatBaby(row) {
-  return {
-    id: row.id,
-    name: row.name,
-    birthdate: row.birthdate,
-    gender: row.gender,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  }
-}
 
 module.exports = router

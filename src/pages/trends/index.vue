@@ -133,17 +133,14 @@ import { reactive, ref, computed, onMounted } from 'vue'
 import { useRecordStore } from '@/stores/record'
 import { useBabyStore } from '@/stores/baby'
 import { api } from '@/services/api'
+import { useStatusBar, useNavSwitch } from '@/composables/useLayout'
 import { POOP_TYPES, POOP_COLORS } from '@/constants'
 import type { StatisticsData, PoopType, PoopColor } from '@/types'
 
 const recordStore = useRecordStore()
 const babyStore = useBabyStore()
-
-// 计算内容区域顶部 padding
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight || 0
-const navBarHeight = 64
-const contentTop = ref(statusBarHeight + navBarHeight + 8)
+const { contentTop } = useStatusBar()
+const { handleSwitch } = useNavSwitch()
 
 const days = ref(7)
 const stats = reactive<StatisticsData>({
@@ -290,10 +287,6 @@ async function fetchStats() {
 function switchDays(d: number) {
   days.value = d
   loadData()
-}
-
-function handleSwitch(key: string) {
-  uni.reLaunch({ url: `/pages/${key}/index` })
 }
 </script>
 

@@ -73,16 +73,22 @@ function goBabyManage() {
   z-index: 50;
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(247, 250, 248, 0.92);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  @supports not (backdrop-filter: blur(1px)) {
+    background: #f7faf8;
+  }
   border-bottom: 1px solid rgba(191, 201, 196, 0.3);
   box-sizing: border-box;
 }
 
 .dark .top-app-bar {
-  background: rgba(46, 49, 47, 0.9);
+  background: rgba(46, 49, 47, 0.92);
   border-bottom-color: rgba(65, 73, 66, 0.5);
+  @supports not (backdrop-filter: blur(1px)) {
+    background: #2e312f;
+  }
 }
 
 .app-bar-content {

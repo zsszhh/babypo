@@ -24,11 +24,11 @@
       <section class="insight-grid">
         <view class="insight-card insight-card--main">
           <view class="insight-main-left">
-            <text class="insight-title">状态良好！</text>
-            <text class="insight-desc">排便规律正常</text>
+            <text class="insight-title">{{ insightTitle }}</text>
+            <text class="insight-desc">{{ insightDesc }}</text>
           </view>
           <view class="insight-icon-box">
-            <text class="material-symbols-outlined insight-icon">thumb_up</text>
+            <text class="material-symbols-outlined insight-icon">{{ insightIcon }}</text>
           </view>
         </view>
         <view class="insight-card insight-card--small">
@@ -60,16 +60,22 @@ import { useRecordStore } from '@/stores/record'
 import { useBabyStore } from '@/stores/baby'
 import { useAuthStore } from '@/stores/auth'
 import { syncService } from '@/services/sync'
+import { api } from '@/services/api'
+import { useStatusBar, useNavSwitch } from '@/composables/useLayout'
+import type { StatisticsData } from '@/types'
 
 const recordStore = useRecordStore()
 const babyStore = useBabyStore()
 const authStore = useAuthStore()
+const { contentTop } = useStatusBar()
+const { handleSwitch } = useNavSwitch()
 
-// 计算内容区域顶部 padding（状态栏 + 导航栏高度）
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight || 0
-const navBarHeight = 64 // 128rpx = 64px
-const contentTop = ref(statusBarHeight + navBarHeight + 8)
+const stats = ref<StatisticsData>({
+  totalCount: 0,
+  avgPerDay: 0,
+  typeDistribution: {},
+  colorDistribution: {}
+})
 
 const lastLogTime = computed(() => {
   const records = recordStore.sortedRecords
@@ -83,8 +89,35 @@ const lastLogTime = computed(() => {
 })
 
 const dailyAvg = computed(() => {
+  if (stats.value.avgPerDay > 0) return `${stats.value.avgPerDay} 次`
   const count = recordStore.sortedRecords.length
-  return `${count} 次`
+  return count > 0 ? `${count} 次` : '0 次'
+})
+
+/**
+ * 根据统计数据动态生成健康洞察
+ */
+const insightTitle = computed(() => {
+  if (stats.value.totalCount === 0) return '暂无数据'
+  const avg = stats.value.avgPerDay
+  if (avg >= 1 && avg <= 3) return '状态良好！'
+  if (avg > 3) return '频率偏高'
+  return '频率偏低'
+})
+
+const insightDesc = computed(() => {
+  if (stats.value.totalCount === 0) return '添加记录后自动分析'
+  const avg = stats.value.avgPerDay
+  if (avg >= 1 && avg <= 3) return '排便规律正常'
+  if (avg > 3) return '注意观察是否有腹泻'
+  return '注意饮食和水分摄入'
+})
+
+const insightIcon = computed(() => {
+  if (stats.value.totalCount === 0) return 'info'
+  const avg = stats.value.avgPerDay
+  if (avg >= 1 && avg <= 3) return 'thumb_up'
+  return 'warning'
 })
 
 onMounted(async () => {
@@ -92,6 +125,8 @@ onMounted(async () => {
     await babyStore.fetchBabies()
     await recordStore.fetchRecords(babyStore.activeBabyId)
     syncService.startAutoSync()
+    const res = await api.getStatistics(babyStore.activeBabyId, 7)
+    stats.value = res.data
   } catch (e) { /* silent */ }
 })
 
@@ -101,10 +136,6 @@ function onQuickLogSaved() {
 
 function goAdd() {
   uni.navigateTo({ url: '/pages/add-record/index' })
-}
-
-function handleSwitch(key: string) {
-  uni.reLaunch({ url: `/pages/${key}/index` })
 }
 </script>
 

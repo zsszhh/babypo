@@ -103,16 +103,40 @@
       <!-- 保存按钮 -->
       <button
         class="save-btn"
-        :class="{ 'save-btn--disabled': !canSave }"
+        :class="{ 'save-btn--disabled': !canSave, 'save-btn--success': showSuccess }"
         :disabled="saving || !canSave"
         @tap="handleSave"
       >
+        <view class="ripple-container">
+          <view
+            v-for="r in ripples"
+            :key="r.id"
+            class="ripple"
+            :style="{ left: r.x + 'px', top: r.y + 'px' }"
+          />
+        </view>
         <text v-if="saving">保存中...</text>
+        <text v-else-if="showSuccess" class="success-text">
+          <text class="material-symbols-outlined save-icon">check_circle</text>
+          保存成功！
+        </text>
         <text v-else>
           <text class="material-symbols-outlined save-icon">check</text>
           保存记录
         </text>
       </button>
+
+      <!-- 粒子效果容器 -->
+      <view class="particle-container" v-if="particles.length > 0">
+        <view
+          v-for="p in particles"
+          :key="p.id"
+          :class="p.type === 'star' ? 'star' : p.type === 'confetti' ? 'confetti' : 'particle'"
+          :style="p.style"
+        >
+          <template v-if="p.type === 'star'">{{ p.style.content }}</template>
+        </view>
+      </view>
 
       <view style="height: 64rpx" />
     </scroll-view>
@@ -124,6 +148,8 @@ import { reactive, ref, computed, onMounted } from 'vue'
 import { useRecordStore } from '@/stores/record'
 import { useBabyStore } from '@/stores/baby'
 import { useAuthStore } from '@/stores/auth'
+import { useStatusBar } from '@/composables/useLayout'
+import { useSaveEffect, useRipple } from '@/composables/useSaveEffect'
 import { POOP_TYPES, POOP_TYPE_LIST, POOP_COLORS, POOP_COLOR_LIST, POOP_AMOUNTS, POOP_AMOUNT_LIST } from '@/constants'
 import { formatDateTime, now } from '@/utils/date'
 import { syncService, generateLocalId } from '@/services/sync'
@@ -132,15 +158,14 @@ import type { PoopType, PoopColor, PoopAmount, PoopRecord } from '@/types'
 const recordStore = useRecordStore()
 const babyStore = useBabyStore()
 const authStore = useAuthStore()
-
-// 计算顶部栏高度（状态栏 + 导航栏）
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight || 0
-const headerTop = ref(statusBarHeight + 12)
+const { headerTop } = useStatusBar()
+const { particles, triggerSaveEffect, createParticles, createStars } = useSaveEffect()
+const { ripples, createRipple } = useRipple()
 
 const isEdit = ref(false)
 const editId = ref<number | null>(null)
 const saving = ref(false)
+const showSuccess = ref(false)
 
 const form = reactive({
   timestamp: now(),
@@ -230,8 +255,14 @@ function goBack() {
   uni.navigateBack()
 }
 
-async function handleSave() {
+async function handleSave(e: any) {
   if (!canSave.value) return
+
+  // 创建涟漪效果
+  if (e?.x !== undefined && e?.y !== undefined) {
+    createRipple({ clientX: e.x, clientY: e.y } as any)
+  }
+
   saving.value = true
 
   const data = {
@@ -247,12 +278,25 @@ async function handleSave() {
   try {
     if (isEdit.value && editId.value) {
       await recordStore.updateRecord(editId.value, data)
-      uni.showToast({ title: '已更新', icon: 'success' })
     } else {
       await recordStore.addRecord(data)
-      uni.showToast({ title: '保存成功', icon: 'success' })
     }
-    setTimeout(() => uni.navigateBack(), 800)
+
+    // 显示成功状态和粒子特效
+    showSuccess.value = true
+    const btnRect = e?.target?.getBoundingClientRect?.()
+    if (btnRect) {
+      triggerSaveEffect({
+        clientX: btnRect.left + btnRect.width / 2,
+        clientY: btnRect.top + btnRect.height / 2
+      } as any)
+    }
+
+    uni.showToast({ title: isEdit.value ? '已更新' : '保存成功', icon: 'success' })
+    setTimeout(() => {
+      showSuccess.value = false
+      uni.navigateBack()
+    }, 1000)
   } catch (error: any) {
     if (error.message?.includes('网络')) {
       const localId = generateLocalId()
@@ -264,8 +308,13 @@ async function handleSave() {
         isDeleted: false
       }
       recordStore.addLocalRecord(localRecord as any)
+
+      showSuccess.value = true
       uni.showToast({ title: '已离线保存', icon: 'success' })
-      setTimeout(() => uni.navigateBack(), 800)
+      setTimeout(() => {
+        showSuccess.value = false
+        uni.navigateBack()
+      }, 1000)
     } else {
       uni.showToast({ title: error.message || '保存失败', icon: 'none' })
     }
@@ -530,6 +579,8 @@ async function handleSave() {
   border: none;
   box-shadow: 0 8rpx 24rpx rgba(59, 105, 76, 0.25);
   transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
 }
 
 .save-btn:active {
@@ -542,8 +593,128 @@ async function handleSave() {
   box-shadow: none;
 }
 
+.save-btn--success {
+  background: linear-gradient(135deg, #1DD1A1, #10AC84);
+  animation: success-pulse 0.5s ease-out;
+}
+
+@keyframes success-pulse {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.05); }
+  50% { transform: scale(0.98); }
+  70% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.success-text {
+  animation: text-pop 0.3s ease-out;
+}
+
+@keyframes text-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .save-icon {
   font-size: 40rpx;
   vertical-align: middle;
+}
+
+/* 涟漪效果 */
+.ripple-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.ripple {
+  position: absolute;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%) scale(0);
+  animation: ripple-expand 0.6s ease-out forwards;
+}
+
+@keyframes ripple-expand {
+  to {
+    transform: translate(-50%, -50%) scale(8);
+    opacity: 0;
+  }
+}
+
+/* 粒子效果容器 */
+.particle-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.particle {
+  position: absolute;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  animation: particle-fly 0.8s ease-out forwards;
+}
+
+@keyframes particle-fly {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(0.2);
+  }
+}
+
+.confetti {
+  position: absolute;
+  width: 16rpx;
+  height: 16rpx;
+  animation: confetti-fall 1s ease-out forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
+  }
+}
+
+.star {
+  position: absolute;
+  font-size: 36rpx;
+  animation: star-pop 0.6s ease-out forwards;
+}
+
+@keyframes star-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.3) rotate(180deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6) rotate(360deg);
+  }
 }
 </style>

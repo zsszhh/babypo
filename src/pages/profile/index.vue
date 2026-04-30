@@ -105,16 +105,14 @@ import { computed, ref, onMounted } from 'vue'
 import { useBabyStore } from '@/stores/baby'
 import { useAuthStore } from '@/stores/auth'
 import { syncService } from '@/services/sync'
+import { useStatusBar, useNavSwitch } from '@/composables/useLayout'
+import { clearRequestCache } from '@/utils/request'
 import { formatDate } from '@/utils/date'
 
 const babyStore = useBabyStore()
 const authStore = useAuthStore()
-
-// 计算内容区域顶部 padding
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight || 0
-const navBarHeight = 64
-const contentTop = ref(statusBarHeight + navBarHeight + 8)
+const { contentTop } = useStatusBar()
+const { handleSwitch } = useNavSwitch()
 
 const remindersOn = ref(false)
 
@@ -159,15 +157,12 @@ function handleLogout() {
     success: (res) => {
       if (res.confirm) {
         syncService.stopAutoSync()
+        clearRequestCache()
         authStore.logout()
         uni.reLaunch({ url: '/pages/config/index' })
       }
     }
   })
-}
-
-function handleSwitch(key: string) {
-  uni.reLaunch({ url: `/pages/${key}/index` })
 }
 </script>
 

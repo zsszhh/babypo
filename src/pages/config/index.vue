@@ -18,7 +18,7 @@
           <input
             class="field-input"
             v-model="form.serverUrl"
-            placeholder="http://192.168.1.100:3000"
+            placeholder="http://192.168.31.202:3000"
             placeholder-style="color: #9CA3AF"
             type="text"
             @focus="showHistory = true"
@@ -91,19 +91,18 @@ import { onShow } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/stores/auth'
 import { useSyncStore } from '@/stores/sync'
 import { syncService } from '@/services/sync'
+import { useStatusBar } from '@/composables/useLayout'
+import { updateRequestCache, updateServerUrlCache } from '@/utils/request'
 import { isValidUrl } from '@/utils/validator'
-import { STORAGE_KEYS } from '@/constants'
 
 const auth = useAuthStore()
 const syncStore = useSyncStore()
+const { statusBarHeight } = useStatusBar()
 
-// 计算页面顶部 padding（状态栏高度）
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight || 0
-const pageTop = ref(statusBarHeight + 40)
+const pageTop = statusBarHeight + 80
 
 const form = reactive({
-  serverUrl: 'http://192.168.31.202:3000',
+  serverUrl: '',
   password: '',
   nickname: ''
 })
@@ -111,35 +110,43 @@ const form = reactive({
 const loading = ref(false)
 const showHistory = ref(false)
 const historyUrls = ref<string[]>([])
+const navigating = ref(false)
 
 const canConnect = computed(() => {
   return form.serverUrl && form.password && form.nickname
 })
 
-// 检查登录态并跳转
+/**
+ * 检查登录态并跳转到首页（带导航锁防止重入）
+ */
 function checkSessionAndRedirect() {
-  const hasSession = auth.restoreSession()
-  console.log('config 页面检查登录态:', hasSession, 'token:', auth.token?.substring(0, 10) + '...')
-
-  if (hasSession && auth.token) {
-    uni.reLaunch({ url: '/pages/home/index' })
+  if (navigating.value) return true
+  if (auth.isLoggedIn()) {
+    navigating.value = true
+    updateRequestCache(auth.serverUrl, auth.token)
+    uni.reLaunch({
+      url: '/pages/home/index',
+      complete: () => {
+        navigating.value = false
+      }
+    })
     return true
   }
   return false
 }
 
 onMounted(() => {
-  // 未登录时，填充历史记录
   if (!checkSessionAndRedirect()) {
-    const saved = uni.getStorageSync(STORAGE_KEYS.SERVER_URL)
-    if (saved) form.serverUrl = saved
-
-    const savedName = uni.getStorageSync(STORAGE_KEYS.OPERATOR_NAME)
-    if (savedName) form.nickname = savedName
+    loadHistory()
+    if (auth.serverUrl) {
+      form.serverUrl = auth.serverUrl
+    } else if (historyUrls.value.length > 0) {
+      form.serverUrl = historyUrls.value[0]
+    }
+    if (auth.operatorName) form.nickname = auth.operatorName
   }
 })
 
-// 每次页面显示时也检查登录态（处理 App 从后台恢复的情况）
 onShow(() => {
   checkSessionAndRedirect()
 })
@@ -190,11 +197,12 @@ async function handleConnect() {
     const url = form.serverUrl.replace(/\/+$/, '')
     auth.serverUrl = url
     auth.operatorName = form.nickname
-    uni.setStorageSync(STORAGE_KEYS.SERVER_URL, url)
-    uni.setStorageSync(STORAGE_KEYS.OPERATOR_NAME, form.nickname)
+
+    updateServerUrlCache(url)
 
     await auth.login(form.password)
 
+    updateRequestCache(auth.serverUrl, auth.token)
     saveHistory()
     syncService.startAutoSync()
     syncStore.setStatus('synced')
@@ -223,10 +231,13 @@ function saveHistory() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh;
+  height: 100vh;
   padding-left: 48rpx;
   padding-right: 48rpx;
   padding-bottom: 48rpx;
+  box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: linear-gradient(180deg, var(--surface) 0%, var(--surface-container-lowest) 100%);
 }
 
@@ -235,7 +246,8 @@ function saveHistory() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 72rpx;
+  margin-bottom: 48rpx;
+  margin-top: 16rpx;
 }
 
 .logo-badge {

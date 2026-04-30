@@ -76,18 +76,15 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRecordStore } from '@/stores/record'
 import { useBabyStore } from '@/stores/baby'
+import { useStatusBar, useNavSwitch } from '@/composables/useLayout'
 import { POOP_TYPES, POOP_COLORS } from '@/constants'
 import { formatTime, getDateLabel, formatDate } from '@/utils/date'
 import type { PoopType, PoopColor } from '@/types'
 
 const recordStore = useRecordStore()
 const babyStore = useBabyStore()
-
-// 计算内容区域顶部 padding
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight || 0
-const navBarHeight = 64
-const contentTop = ref(statusBarHeight + navBarHeight + 8)
+const { contentTop } = useStatusBar()
+const { handleSwitch } = useNavSwitch()
 
 // 只显示最近10条记录
 const recentGroupedRecords = computed(() => {
@@ -186,17 +183,11 @@ function confirmDelete(record: any) {
 function goCalendar() {
   uni.navigateTo({ url: '/pages/calendar/index' })
 }
-
-/**
- * 底部导航切换
- */
-function handleSwitch(key: string) {
-  uni.reLaunch({ url: `/pages/${key}/index` })
-}
 </script>
 
 <style scoped>
 .history-page {
+  min-height: 100vh;
   background: var(--background);
   font-family: 'Plus Jakarta Sans', sans-serif;
 }

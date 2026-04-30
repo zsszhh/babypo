@@ -1,11 +1,10 @@
-import { request } from '@/utils/request'
+import { request, cachedServerUrl, cachedToken } from '@/utils/request'
 import type {
   AuthData, RecordsData, StatisticsData,
   SyncPullData, SyncPushData, PoopRecord, Baby
 } from '@/types'
 
 export const api = {
-  // Auth
   login(password: string) {
     return request<AuthData>({ url: '/api/v1/auth/login', method: 'POST', data: { password } })
   },
@@ -13,7 +12,6 @@ export const api = {
     return request<{ valid: boolean }>({ url: '/api/v1/auth/verify', method: 'POST' })
   },
 
-  // Records
   getRecords(params: { baby_id?: number; limit?: number; offset?: number; start_date?: number; end_date?: number }) {
     const query = Object.entries(params)
       .filter(([_, v]) => v !== undefined)
@@ -31,7 +29,6 @@ export const api = {
     return request({ url: `/api/v1/records/${id}`, method: 'DELETE' })
   },
 
-  // Babies
   getBabies() {
     return request<Baby[]>({ url: '/api/v1/babies' })
   },
@@ -42,7 +39,6 @@ export const api = {
     return request<Baby>({ url: `/api/v1/babies/${id}`, method: 'PUT', data })
   },
 
-  // Sync
   syncPull(lastSyncTime: number) {
     return request<SyncPullData>({ url: '/api/v1/sync/pull', method: 'POST', data: { lastSyncTime } })
   },
@@ -50,15 +46,18 @@ export const api = {
     return request<SyncPushData>({ url: '/api/v1/sync/push', method: 'POST', data: { records } })
   },
 
-  // Statistics
   getStatistics(babyId: number, days: number) {
     return request<StatisticsData>({ url: `/api/v1/statistics/summary?baby_id=${babyId}&days=${days}` })
   },
 
-  // Export
-  getExportUrl(format: 'json' | 'csv') {
-    const token = uni.getStorageSync('babypoop-token')
-    const serverUrl = uni.getStorageSync('babypoop-server-url')
-    return `${serverUrl}/api/v1/export/${format}?token=${token}`
+  /**
+   * 生成导出文件下载 URL（App 端通过 uni.downloadFile 下载，需 token 参数）
+   */
+  getExportUrl(format: 'json' | 'csv', babyId?: number) {
+    const token = cachedToken || uni.getStorageSync('babypoop-token')
+    const serverUrl = cachedServerUrl || uni.getStorageSync('babypoop-server-url')
+    let url = `${serverUrl}/api/v1/export/${format}?token=${token}`
+    if (babyId) url += `&baby_id=${babyId}`
+    return url
   }
 }

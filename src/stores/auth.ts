@@ -9,6 +9,9 @@ export const useAuthStore = defineStore('auth', () => {
   const serverUrl = ref('')
   const operatorName = ref('')
 
+  /**
+   * 使用密码登录服务器
+   */
   async function login(password: string) {
     const res = await request<AuthData>({
       url: '/api/v1/auth/login',
@@ -17,14 +20,11 @@ export const useAuthStore = defineStore('auth', () => {
     })
 
     token.value = res.data.token
-    serverUrl.value = serverUrl.value // 保持当前值
-    // 立即持久化到本地存储
-    uni.setStorageSync(STORAGE_KEYS.TOKEN, res.data.token)
-    uni.setStorageSync(STORAGE_KEYS.SERVER_URL, serverUrl.value)
-    uni.setStorageSync(STORAGE_KEYS.OPERATOR_NAME, operatorName.value)
-    console.log('登录成功，已保存 token:', res.data.token?.substring(0, 10) + '...')
   }
 
+  /**
+   * 验证当前 token 是否有效
+   */
   async function verifyToken(): Promise<boolean> {
     try {
       const res = await request<{ valid: boolean }>({
@@ -37,30 +37,31 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function restoreSession(): boolean {
-    const savedToken = uni.getStorageSync(STORAGE_KEYS.TOKEN)
-    const savedUrl = uni.getStorageSync(STORAGE_KEYS.SERVER_URL)
-    const savedName = uni.getStorageSync(STORAGE_KEYS.OPERATOR_NAME)
-
-    console.log('恢复 session - token:', savedToken?.substring(0, 10) + '...', 'url:', savedUrl, 'name:', savedName)
-
-    if (savedToken && savedUrl && savedName) {
-      token.value = savedToken
-      serverUrl.value = savedUrl
-      operatorName.value = savedName
-      return true
-    }
-    return false
+  /**
+   * 判断当前是否已登录（Pinia persist 自动恢复，无需手动读 Storage）
+   */
+  function isLoggedIn(): boolean {
+    return !!(token.value && serverUrl.value && operatorName.value)
   }
 
+  /**
+   * 退出登录，清除所有认证信息（包括旧版 Storage key 兼容清理）
+   */
   function logout() {
     token.value = ''
     serverUrl.value = ''
     operatorName.value = ''
+
     uni.removeStorageSync(STORAGE_KEYS.TOKEN)
     uni.removeStorageSync(STORAGE_KEYS.SERVER_URL)
     uni.removeStorageSync(STORAGE_KEYS.OPERATOR_NAME)
+    uni.removeStorageSync(STORAGE_KEYS.LAST_SYNC)
   }
 
-  return { token, serverUrl, operatorName, login, verifyToken, restoreSession, logout }
+  return { token, serverUrl, operatorName, login, verifyToken, isLoggedIn, logout }
+}, {
+  persist: {
+    key: 'babypoop-auth',
+    paths: ['token', 'serverUrl', 'operatorName']
+  }
 })

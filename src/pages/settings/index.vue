@@ -71,15 +71,13 @@
 import { ref } from 'vue'
 import { useSettingsStore, type FontSizeLevel } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
+import { useStatusBar } from '@/composables/useLayout'
+import { clearRequestCache } from '@/utils/request'
 import { syncService } from '@/services/sync'
 
 const settings = useSettingsStore()
 const auth = useAuthStore()
-
-// 计算顶部栏高度
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight || 0
-const headerTop = ref(statusBarHeight + 12)
+const { headerTop } = useStatusBar()
 
 const fontOptions: { value: FontSizeLevel; fontSize: number }[] = [
   { value: 'small', fontSize: 14 },
@@ -107,6 +105,7 @@ function handleLogout() {
     success: (res) => {
       if (res.confirm) {
         syncService.stopAutoSync()
+        clearRequestCache()
         auth.logout()
         uni.reLaunch({ url: '/pages/config/index' })
       }

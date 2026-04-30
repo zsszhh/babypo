@@ -46,10 +46,14 @@ function handleSwitch(key: string) {
   justify-content: space-around;
   align-items: center;
   padding: 24rpx 32rpx 32rpx;
-  background: rgba(247, 250, 248, 0.9);
+  background: var(--surface-container);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(191, 201, 196, 0.3);
+  /* fallback: 安卓低版本不支持 backdrop-filter 时使用不透明背景 */
+  @supports not (backdrop-filter: blur(1px)) {
+    background: var(--surface-container);
+  }
+  border-top: 1px solid var(--outline-variant);
   border-radius: 48rpx 48rpx 0 0;
   box-shadow: 0 -8rpx 30rpx rgba(59, 105, 76, 0.06);
   box-sizing: border-box;
