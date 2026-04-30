@@ -1,0 +1,133 @@
+// ========= 设计 Token =========
+
+// 配色 - 亮色模式
+$primary-color: #3b694c;
+$primary-light: #d1fae5;
+$primary-dark: #1c5c38;
+
+$cta-color: #3b694c;
+$cta-light: #beeed0;
+
+$bg-color: #f7faf8;
+$card-bg: #ffffff;
+$surface-bg: #e8f3ee;
+
+$text-primary: #191c1a;
+$text-secondary: #414942;
+$text-hint: #707973;
+
+$border-color: #bfc9c4;
+$shadow-color: rgba(59, 105, 76, 0.08);
+
+$success-color: #2e7d32;
+$warning-color: #e65100;
+$error-color: #ba1a1a;
+
+// 配色 - 深色模式
+$dark-bg: #2e312f;
+$dark-card-bg: #363a38;
+$dark-surface: #3a3e3c;
+$dark-text-primary: #f0f1ef;
+$dark-text-secondary: #bfc9c4;
+$dark-text-hint: #89938e;
+$dark-border: #414942;
+
+// 字体大小
+$font-size-xs: 24rpx;
+$font-size-sm: 28rpx;
+$font-size-base: 32rpx;
+$font-size-lg: 36rpx;
+$font-size-xl: 40rpx;
+$font-size-xxl: 48rpx;
+
+// 间距
+$spacing-xs: 8rpx;
+$spacing-sm: 16rpx;
+$spacing-base: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 48rpx;
+
+// 圆角
+$radius-sm: 8rpx;
+$radius-base: 12rpx;
+$radius-lg: 16rpx;
+$radius-round: 999rpx;
+
+// 阴影
+$shadow-sm: 0 2rpx 8rpx rgba(59, 105, 76, 0.06);
+$shadow-base: 0 4rpx 16rpx rgba(59, 105, 76, 0.08);
+$shadow-lg: 0 8rpx 32rpx rgba(59, 105, 76, 0.1);
+
+// 触控
+$touch-target: 48rpx;
+
+// 全局样式
+page {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+view,
+text,
+scroll-view {
+  box-sizing: border-box;
+}
+
+// 通用按钮
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 96rpx;
+  background: linear-gradient(135deg, var(--primary), var(--primary-container));
+  color: var(--on-primary);
+  font-size: calc(36rpx * var(--font-scale));
+  font-weight: 600;
+  border-radius: $radius-lg;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:active {
+    opacity: 0.85;
+  }
+
+  &--loading {
+    opacity: 0.7;
+  }
+
+  &--disabled {
+    opacity: 0.5;
+  }
+}
+
+// 卡片
+.card {
+  background: var(--card-bg);
+  border-radius: $radius-lg;
+  padding: $spacing-base;
+  box-shadow: $shadow-sm;
+  margin-bottom: $spacing-sm;
+}
+
+// 标题
+.section-title {
+  font-size: calc($font-size-lg * var(--font-scale));
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: $spacing-sm $spacing-base;
+}
+
+// 标签
+.tag {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-round;
+  font-size: calc($font-size-xs * var(--font-scale));
+  font-weight: 500;
+}

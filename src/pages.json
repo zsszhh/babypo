@@ -1,0 +1,19 @@
+{
+  "pages": [
+    { "path": "pages/config/index", "style": { "navigationBarTitleText": "连接服务器", "navigationStyle": "custom" } },
+    { "path": "pages/home/index", "style": { "navigationBarTitleText": "首页", "navigationStyle": "custom" } },
+    { "path": "pages/history/index", "style": { "navigationBarTitleText": "历史记录", "navigationStyle": "custom" } },
+    { "path": "pages/calendar/index", "style": { "navigationBarTitleText": "日历视图", "navigationStyle": "custom" } },
+    { "path": "pages/trends/index", "style": { "navigationBarTitleText": "数据统计", "navigationStyle": "custom" } },
+    { "path": "pages/profile/index", "style": { "navigationBarTitleText": "个人资料", "navigationStyle": "custom" } },
+    { "path": "pages/add-record/index", "style": { "navigationBarTitleText": "添加记录", "navigationStyle": "custom" } },
+    { "path": "pages/baby-manage/index", "style": { "navigationBarTitleText": "宝宝管理", "navigationStyle": "custom" } },
+    { "path": "pages/settings/index", "style": { "navigationBarTitleText": "设置", "navigationStyle": "custom" } }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "宝宝排便记录",
+    "navigationBarBackgroundColor": "#f7faf8",
+    "backgroundColor": "#f7faf8"
+  }
+}
