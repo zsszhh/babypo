@@ -134,8 +134,18 @@ npm install
 # H5 开发模式
 npm run dev:h5
 
-# 或使用 HBuilderX 打开项目，运行到 Android/iOS 设备
+# H5 构建
+npm run build:h5
+
+# App 构建（生成原生 App 资源）
+npm run build:app
 ```
+
+**App 打包说明**：
+1. 执行 `npm run build:app` 生成 App 资源
+2. 使用 HBuilderX 打开项目根目录
+3. 在 HBuilderX 中选择"运行" -> "运行到手机或模拟器"，或"发行" -> "原生 App-云打包"
+4. 根据向导完成 Android/iOS App 的构建打包
 
 ### 3. 连接服务器
 
