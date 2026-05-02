@@ -100,7 +100,7 @@ babypo/
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-username/babypo.git
+git clone https://github.com/zsszhh/babypo.git
 cd babypo
 
 # 一键启动
