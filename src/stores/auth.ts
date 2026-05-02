@@ -56,12 +56,26 @@ export const useAuthStore = defineStore('auth', () => {
     uni.removeStorageSync(STORAGE_KEYS.SERVER_URL)
     uni.removeStorageSync(STORAGE_KEYS.OPERATOR_NAME)
     uni.removeStorageSync(STORAGE_KEYS.LAST_SYNC)
+    uni.removeStorageSync('babypoop-auth')
   }
 
   return { token, serverUrl, operatorName, login, verifyToken, isLoggedIn, logout }
 }, {
   persist: {
     key: 'babypoop-auth',
-    paths: ['token', 'serverUrl', 'operatorName']
+    paths: ['token', 'serverUrl', 'operatorName'],
+    // 使用 uni-app 的 storage API，兼容 App 端
+    storage: {
+      getItem: (key: string) => {
+        const value = uni.getStorageSync(key)
+        return value || null
+      },
+      setItem: (key: string, value: string) => {
+        uni.setStorageSync(key, value)
+      },
+      removeItem: (key: string) => {
+        uni.removeStorageSync(key)
+      }
+    }
   }
 })

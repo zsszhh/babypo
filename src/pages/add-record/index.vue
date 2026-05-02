@@ -226,17 +226,32 @@ const canSave = computed(() => form.type && authStore.operatorName)
 onMounted(() => {
   const pages = getCurrentPages()
   const page = pages[pages.length - 1] as any
-  if (page?.$page?.fullPath) {
+
+  // 兼容 App 端和 H5 端获取参数
+  let id: string | null = null
+
+  // 方式1：从 options 中获取（App 端）
+  if (page?.options?.id) {
+    id = page.options.id
+  }
+  // 方式2：从 fullPath 中解析（H5 端）
+  else if (page?.$page?.fullPath) {
     const query = page.$page.fullPath.split('?')[1]
     if (query) {
-      const params = new URLSearchParams(query)
-      const id = params.get('id')
-      if (id) {
-        isEdit.value = true
-        editId.value = Number(id)
-        loadRecord(Number(id))
-      }
+      // 手动解析 query string，兼容 App 端没有 URLSearchParams
+      const params: Record<string, string> = {}
+      query.split('&').forEach(pair => {
+        const [key, value] = pair.split('=')
+        if (key) params[key] = decodeURIComponent(value || '')
+      })
+      id = params.id || null
     }
+  }
+
+  if (id) {
+    isEdit.value = true
+    editId.value = Number(id)
+    loadRecord(Number(id))
   }
 })
 
@@ -618,103 +633,5 @@ async function handleSave(e: any) {
 .save-icon {
   font-size: 40rpx;
   vertical-align: middle;
-}
-
-/* 涟漪效果 */
-.ripple-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.ripple {
-  position: absolute;
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
-  transform: translate(-50%, -50%) scale(0);
-  animation: ripple-expand 0.6s ease-out forwards;
-}
-
-@keyframes ripple-expand {
-  to {
-    transform: translate(-50%, -50%) scale(8);
-    opacity: 0;
-  }
-}
-
-/* 粒子效果容器 */
-.particle-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 9999;
-}
-
-.particle {
-  position: absolute;
-  width: 16rpx;
-  height: 16rpx;
-  border-radius: 50%;
-  animation: particle-fly 0.8s ease-out forwards;
-}
-
-@keyframes particle-fly {
-  0% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--tx), var(--ty)) scale(0.2);
-  }
-}
-
-.confetti {
-  position: absolute;
-  width: 16rpx;
-  height: 16rpx;
-  animation: confetti-fall 1s ease-out forwards;
-}
-
-@keyframes confetti-fall {
-  0% {
-    opacity: 1;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
-  }
-}
-
-.star {
-  position: absolute;
-  font-size: 36rpx;
-  animation: star-pop 0.6s ease-out forwards;
-}
-
-@keyframes star-pop {
-  0% {
-    opacity: 0;
-    transform: scale(0) rotate(0deg);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.3) rotate(180deg);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.6) rotate(360deg);
-  }
 }
 </style>

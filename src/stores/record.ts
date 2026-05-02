@@ -220,6 +220,12 @@ export const useRecordStore = defineStore('record', () => {
 }, {
   persist: {
     key: 'babypoop-records',
-    paths: ['records', 'localRecords']
+    paths: ['records', 'localRecords'],
+    // 使用 uni-app 的 storage API，兼容 App 端
+    storage: {
+      getItem: (key: string) => uni.getStorageSync(key) || null,
+      setItem: (key: string, value: string) => uni.setStorageSync(key, value),
+      removeItem: (key: string) => uni.removeStorageSync(key)
+    }
   }
 })

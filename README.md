@@ -9,7 +9,7 @@
 [![Vue 3](https://img.shields.io/badge/Vue-3.4-4FC08D?logo=vue.js)](https://vuejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.19-000000?logo=express)](https://expressjs.com/)
 [![SQLite](https://img.shields.io/badge/SQLite-6.0-003B57?logo=sqlite)](https://www.sqlite.org/)
-
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
 [![uni-app](https://img.shields.io/badge/uni--app-3.0-2B9939)](https://uniapp.dcloud.net.cn/)
 
 </div>
@@ -25,19 +25,19 @@
 - 📊 **科学分析** — 基于布里斯托大便分类法，提供健康洞察和趋势分析
 - 📅 **日历视图** — 月/年视图直观查看排便规律
 - 📤 **数据导出** — 支持 JSON / CSV 格式导出
-
+- 🐳 **一键部署** — Docker Compose 一条命令启动后端服务
 - 🎨 **深色模式** — 支持明暗主题切换
 - 👴 **老人友好** — 大触控目标、高对比度设计，长辈也能轻松使用
 
 ## 📱 应用截图
 
-| 首页 | 添加记录 | 历史记录 |
-|:---:|:---:|:---:|
-| 首页仪表盘，快速查看健康洞察和日均数据 | 基于布里斯托分类法的便便类型选择 | 按日期分组的时间线视图 |
+| 首页 | 历史记录 |
+|:---:|:---:|
+| ![首页](screenshots/home.jpg) | ![历史记录](screenshots/history.jpg) |
 
-| 日历视图 | 趋势分析 | 数据统计 |
-|:---:|:---:|:---:|
-| 月/年视图查看排便日历 | 频率趋势和健康指标 | 类型/颜色分布统计与导出 |
+| 趋势分析 | 个人中心 |
+|:---:|:---:|
+| ![趋势分析](screenshots/trends.jpg) | ![个人中心](screenshots/profile.jpg) |
 
 ## 🏗️ 项目架构
 
@@ -80,10 +80,10 @@ babypo/
 │   │   ├── middleware/         # 中间件（认证、错误处理）
 │   │   ├── db/                 # 数据库初始化
 │   │   └── utils/              # 工具函数
-
+│   ├── Dockerfile
 │   └── package.json
 │
-
+└── docker-compose.yml          # Docker 一键部署配置
 ```
 
 ## 🚀 快速开始
@@ -91,9 +91,25 @@ babypo/
 ### 前提条件
 
 - [Node.js](https://nodejs.org/) >= 18
+- [Docker](https://www.docker.com/) (推荐，用于后端部署)
 - [HBuilderX](https://www.dcloud.io/hbuilderx.html) (用于 App 开发和打包)
 
 ### 1. 启动后端服务
+
+**方式一：Docker 部署（推荐）**
+
+```bash
+# 克隆项目
+git clone https://github.com/your-username/babypo.git
+cd babypo
+
+# 一键启动
+docker compose up -d
+```
+
+服务将在 `http://localhost:3000` 启动。
+
+**方式二：手动启动**
 
 ```bash
 cd server
@@ -108,8 +124,6 @@ cp .env.example .env
 # 启动服务
 npm run dev
 ```
-
-服务将在 `http://localhost:3000` 启动。
 
 ### 2. 运行前端 App
 
@@ -155,7 +169,7 @@ npm run dev:h5
 | 统计 | GET | `/statistics` | 获取统计数据 |
 | 导出 | GET | `/export/json` | 导出 JSON |
 | 导出 | GET | `/export/csv` | 导出 CSV |
-| 健康检查 | GET | `/health` | 服务健康状态 |
+| 健康检查 | GET | `/health` | 服务健康状态（完整路径 `/api/v1/health`） |
 
 ## 🔄 同步机制
 
@@ -193,9 +207,9 @@ npm run dev:h5
 | 前端框架 | uni-app (Vue 3 + TypeScript) |
 | 状态管理 | Pinia + pinia-plugin-persistedstate |
 | 后端框架 | Express.js |
-| 数据库 | SQLite (better-sqlite3) |
+| 数据库 | SQLite |
 | 认证 | JWT + bcryptjs |
-
+| 容器化 | Docker + Docker Compose |
 | 安全 | Helmet + CORS |
 
 ## 📄 License

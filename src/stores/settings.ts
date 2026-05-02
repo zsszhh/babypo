@@ -9,6 +9,13 @@ export const FONT_SCALES: Record<FontSizeLevel, number> = {
   large: 1.125
 }
 
+// uni-app storage 适配器，兼容 App 端
+const uniStorage = {
+  getItem: (key: string) => uni.getStorageSync(key) || null,
+  setItem: (key: string, value: string) => uni.setStorageSync(key, value),
+  removeItem: (key: string) => uni.removeStorageSync(key)
+}
+
 export const useSettingsStore = defineStore('settings', () => {
   const fontScale = ref(1)
   const fontLevel = ref<FontSizeLevel>('medium')
@@ -27,6 +34,7 @@ export const useSettingsStore = defineStore('settings', () => {
 }, {
   persist: {
     key: 'babypoop-settings',
-    paths: ['fontScale', 'fontLevel', 'darkMode']
+    paths: ['fontScale', 'fontLevel', 'darkMode'],
+    storage: uniStorage
   }
 })

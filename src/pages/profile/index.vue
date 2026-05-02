@@ -10,9 +10,6 @@
             <view class="avatar-placeholder">
               <text class="avatar-initial">{{ babyStore.activeBaby?.name?.[0] || '?' }}</text>
             </view>
-            <view class="avatar-camera-btn">
-              <text class="material-symbols-outlined avatar-camera-icon">photo_camera</text>
-            </view>
           </view>
           <text class="profile-name">{{ babyStore.activeBaby?.name || '宝宝' }}</text>
           <view class="profile-age-badge">
@@ -38,22 +35,6 @@
       <section class="settings-section">
         <text class="settings-section-title">设置</text>
         <view class="settings-list">
-          <!-- 每日提醒 -->
-          <view class="setting-item" hover-class="setting-item-hover">
-            <view class="setting-left">
-              <view class="setting-icon-box setting-icon-box--primary">
-                <text class="material-symbols-outlined setting-icon">notifications_active</text>
-              </view>
-              <view class="setting-texts">
-                <text class="setting-name">每日提醒</text>
-                <text class="setting-desc">6小时未记录时通知</text>
-              </view>
-            </view>
-            <view class="toggle" :class="{ 'toggle--on': remindersOn }" @tap="remindersOn = !remindersOn">
-              <view class="toggle-knob" :class="{ 'toggle-knob--on': remindersOn }" />
-            </view>
-          </view>
-
           <!-- 导出日志 -->
           <view class="setting-item" hover-class="setting-item-hover" @tap="handleExport">
             <view class="setting-left">
@@ -106,15 +87,13 @@ import { useBabyStore } from '@/stores/baby'
 import { useAuthStore } from '@/stores/auth'
 import { syncService } from '@/services/sync'
 import { useStatusBar, useNavSwitch } from '@/composables/useLayout'
-import { clearRequestCache } from '@/utils/request'
+import { clearRequestCache, cachedServerUrl, cachedToken } from '@/utils/request'
 import { formatDate } from '@/utils/date'
 
 const babyStore = useBabyStore()
 const authStore = useAuthStore()
 const { contentTop } = useStatusBar()
 const { handleSwitch } = useNavSwitch()
-
-const remindersOn = ref(false)
 
 const birthDateText = computed(() => {
   if (!babyStore.activeBaby?.birthdate) return '—'
@@ -138,12 +117,91 @@ onMounted(() => {
 })
 
 function handleExport() {
+  if (!cachedServerUrl || !cachedToken) {
+    uni.showToast({ title: '请先登录', icon: 'none' })
+    return
+  }
+
+  const babyId = babyStore.activeBabyId
+
   uni.showActionSheet({
     itemList: ['导出 JSON', '导出 CSV'],
     success: (res) => {
-      uni.showToast({ title: '导出功能开发中', icon: 'none' })
+      const format = res.tapIndex === 0 ? 'json' : 'csv'
+      doExport(format, babyId)
     }
   })
+}
+
+function doExport(format: 'json' | 'csv', babyId: number) {
+  const url = `${cachedServerUrl}/api/v1/export/${format}?token=${encodeURIComponent(cachedToken)}&baby_id=${babyId}`
+
+  // #ifdef H5
+  // H5 环境使用浏览器原生下载
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `babypoop-export-${Date.now()}.${format}`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  uni.showToast({ title: '开始下载', icon: 'success' })
+  // #endif
+
+  // #ifndef H5
+  // App/小程序环境使用 uni.downloadFile
+  uni.showLoading({ title: '导出中...', mask: true })
+
+  uni.downloadFile({
+    url,
+    success: (res) => {
+      if (res.statusCode === 200) {
+        const tempPath = res.tempFilePath
+        const fileName = `babypoop-${Date.now()}.${format}`
+        uni.saveFile({
+          tempFilePath: tempPath,
+          filePath: `${wx.env.USER_DATA_PATH}/${fileName}`,
+          success: (saveRes) => {
+            uni.hideLoading()
+            uni.showModal({
+              title: '导出成功',
+              content: `文件已保存，是否打开查看？`,
+              confirmText: '打开',
+              success: (modalRes) => {
+                if (modalRes.confirm) {
+                  uni.openDocument({
+                    filePath: saveRes.savedFilePath,
+                    showMenu: true,
+                    fileType: format as 'json' | 'csv',
+                    fail: (err) => {
+                      console.error('打开文件失败:', err)
+                      uni.showToast({ title: '打开失败，请到文件管理器查看', icon: 'none' })
+                    }
+                  })
+                }
+              }
+            })
+          },
+          fail: (err) => {
+            uni.hideLoading()
+            console.error('保存失败:', err)
+            uni.showToast({ title: '保存失败', icon: 'none' })
+          }
+        })
+      } else if (res.statusCode === 401) {
+        uni.hideLoading()
+        uni.showToast({ title: '登录已过期', icon: 'none' })
+      } else {
+        uni.hideLoading()
+        uni.showToast({ title: `导出失败(${res.statusCode})`, icon: 'none' })
+      }
+    },
+    fail: (err) => {
+      uni.hideLoading()
+      console.error('下载失败:', err)
+      uni.showToast({ title: '网络错误', icon: 'none' })
+    }
+  })
+  // #endif
 }
 
 function handleEditBaby() {
@@ -168,6 +226,7 @@ function handleLogout() {
 
 <style scoped>
 .profile-page {
+  min-height: 100vh;
   background: var(--background);
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
@@ -180,6 +239,7 @@ function handleLogout() {
 
 /* 头像区 */
 .profile-header {
+  padding-top: 48rpx;
   margin-bottom: 48rpx;
 }
 
@@ -210,26 +270,6 @@ function handleLogout() {
 .avatar-initial {
   font-size: 64rpx;
   font-weight: 700;
-  color: var(--on-primary);
-}
-
-.avatar-camera-btn {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 56rpx;
-  height: 56rpx;
-  background: var(--primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4rpx 16rpx rgba(59, 105, 76, 0.3);
-  border: 3rpx solid var(--surface-container-lowest);
-}
-
-.avatar-camera-icon {
-  font-size: 28rpx;
   color: var(--on-primary);
 }
 

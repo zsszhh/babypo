@@ -36,7 +36,10 @@ const emit = defineEmits<{
 }>()
 
 const typeInfo = computed(() => POOP_TYPES[props.record.type as PoopType])
-const colorInfo = computed(() => props.record.color ? POOP_COLORS[props.record.color as PoopColor] : null)
+const colorInfo = computed(() => {
+  if (!props.record.color) return null
+  return POOP_COLORS[props.record.color as PoopColor] || { name: '未知', color: '#ccc' }
+})
 const amountInfo = computed(() => props.record.amount ? POOP_AMOUNTS[props.record.amount as PoopAmount] : null)
 
 function handleEdit() {

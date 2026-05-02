@@ -267,6 +267,11 @@ onMounted(() => loadData())
 
 async function loadData() {
   try {
+    // 先确保 baby 数据已加载
+    if (babyStore.babies.length === 0) {
+      await babyStore.fetchBabies()
+    }
+
     // 并行加载记录和统计数据
     await Promise.all([
       recordStore.fetchRecords(babyStore.activeBabyId),

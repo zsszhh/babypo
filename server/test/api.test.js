@@ -171,7 +171,7 @@ describe('BabyPoopTracker API', () => {
     })
 
     it('应获取记录列表', async () => {
-      const { status, data } = await request(`/records?babyId=${babyId}`, {
+      const { status, data } = await request(`/records?baby_id=${babyId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       assert.strictEqual(status, 200)
@@ -218,7 +218,7 @@ describe('BabyPoopTracker API', () => {
     })
 
     it('已删除记录不应出现在列表中', async () => {
-      const { status, data } = await request(`/records?babyId=${babyId}`, {
+      const { status, data } = await request(`/records?baby_id=${babyId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       assert.strictEqual(status, 200)
@@ -230,7 +230,7 @@ describe('BabyPoopTracker API', () => {
       const start = Date.now() - 86400000
       const end = Date.now() + 86400000
       const { status, data } = await request(
-        `/records?babyId=${babyId}&startDate=${start}&endDate=${end}`,
+        `/records?baby_id=${babyId}&start_date=${start}&end_date=${end}`,
         { headers: { Authorization: `Bearer ${token}` } }
       )
       assert.strictEqual(status, 200)
@@ -238,7 +238,7 @@ describe('BabyPoopTracker API', () => {
     })
 
     it('应支持分页', async () => {
-      const { status, data } = await request(`/records?babyId=${babyId}&page=1&pageSize=5`, {
+      const { status, data } = await request(`/records?baby_id=${babyId}&offset=0&limit=5`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       assert.strictEqual(status, 200)
@@ -294,7 +294,7 @@ describe('BabyPoopTracker API', () => {
   // ── Statistics ──
   describe('Statistics', () => {
     it('应返回统计摘要', async () => {
-      const { status, data } = await request(`/statistics/summary?babyId=${babyId}&days=7`, {
+      const { status, data } = await request(`/statistics/summary?baby_id=${babyId}&days=7`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       assert.strictEqual(status, 200)
@@ -306,7 +306,7 @@ describe('BabyPoopTracker API', () => {
     })
 
     it('应返回 30 天统计', async () => {
-      const { status, data } = await request(`/statistics/summary?babyId=${babyId}&days=30`, {
+      const { status, data } = await request(`/statistics/summary?baby_id=${babyId}&days=30`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       assert.strictEqual(status, 200)
@@ -314,7 +314,7 @@ describe('BabyPoopTracker API', () => {
     })
 
     it('应处理无效 days 参数（使用默认值）', async () => {
-      const { status, data } = await request(`/statistics/summary?babyId=${babyId}&days=abc`, {
+      const { status, data } = await request(`/statistics/summary?baby_id=${babyId}&days=abc`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       assert.strictEqual(status, 200)
@@ -325,7 +325,7 @@ describe('BabyPoopTracker API', () => {
   // ── Export ──
   describe('Export', () => {
     it('应导出 JSON', async () => {
-      const url = `${BASE}/export/json?babyId=${babyId}`
+      const url = `${BASE}/export/json?baby_id=${babyId}`
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -334,7 +334,7 @@ describe('BabyPoopTracker API', () => {
     })
 
     it('应导出 CSV', async () => {
-      const url = `${BASE}/export/csv?babyId=${babyId}`
+      const url = `${BASE}/export/csv?baby_id=${babyId}`
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -345,7 +345,7 @@ describe('BabyPoopTracker API', () => {
     })
 
     it('应拒绝未认证导出', async () => {
-      const res = await fetch(`${BASE}/export/json?babyId=${babyId}`)
+      const res = await fetch(`${BASE}/export/json?baby_id=${babyId}`)
       assert.strictEqual(res.status, 401)
     })
   })

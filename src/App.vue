@@ -11,6 +11,7 @@ import { onLaunch } from '@dcloudio/uni-app'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { updateRequestCache } from '@/utils/request'
+import { getLoggingIn, setLoggingIn } from '@/utils/authGuard'
 
 const settings = useSettingsStore()
 const auth = useAuthStore()
@@ -41,19 +42,31 @@ onLaunch(() => {
 const LOGIN_PAGE = '/pages/config/index'
 const AUTH_STORAGE_KEY = 'babypoop-auth'
 const routeHooks = ['navigateTo', 'redirectTo', 'reLaunch', 'switchTab'] as const
+
 routeHooks.forEach((hook) => {
   uni.addInterceptor(hook, {
     invoke(args: any) {
       const url = typeof args === 'string' ? args : args?.url || ''
+
+      // 登录页直接放行
       if (url === LOGIN_PAGE || url.startsWith(LOGIN_PAGE)) return true
+
+      // 登录跳转中，直接放行
+      if (getLoggingIn()) {
+        setLoggingIn(false)
+        return true
+      }
+
       try {
         const raw = uni.getStorageSync(AUTH_STORAGE_KEY)
-        const authData = raw ? JSON.parse(raw) : {}
+        // 兼容不同平台返回类型
+        const authData = typeof raw === 'string' ? (raw ? JSON.parse(raw) : {}) : (raw || {})
         if (!authData.token) {
           uni.reLaunch({ url: LOGIN_PAGE })
           return false
         }
-      } catch {
+      } catch (e) {
+        console.error('路由守卫解析 auth 失败:', e)
         uni.reLaunch({ url: LOGIN_PAGE })
         return false
       }
@@ -64,6 +77,9 @@ routeHooks.forEach((hook) => {
 </script>
 
 <style>
+/* 全局效果样式 */
+@import './styles/effects.css';
+
 /* Material Symbols 字体 - App 端必须本地加载 */
 @font-face {
   font-family: 'Material Symbols Outlined';

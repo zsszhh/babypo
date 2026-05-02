@@ -15,7 +15,7 @@
           class="ql-color-btn"
           :class="{ 'ql-color-btn--selected': selectedColor === c.key }"
           :style="{ backgroundColor: c.color }"
-          @tap="selectedColor = c.key"
+          @tap="handleColorSelect(c.key)"
           hover-class="ql-color-hover"
         />
       </scroll-view>
@@ -109,6 +109,10 @@ const consistencyOptions = [
 ]
 
 const canSave = computed(() => selectedConsistency.value && authStore.operatorName)
+
+function handleColorSelect(colorKey: string) {
+  selectedColor.value = colorKey
+}
 
 function formatTime(ts: number): string {
   const d = new Date(ts)
@@ -345,103 +349,5 @@ async function handleSave(e: any) {
 .ql-save-icon {
   font-size: 36rpx;
   color: var(--on-primary);
-}
-
-/* 涟漪效果 */
-.ripple-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.ripple {
-  position: absolute;
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
-  transform: translate(-50%, -50%) scale(0);
-  animation: ripple-expand 0.6s ease-out forwards;
-}
-
-@keyframes ripple-expand {
-  to {
-    transform: translate(-50%, -50%) scale(8);
-    opacity: 0;
-  }
-}
-
-/* 粒子效果容器 */
-.particle-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 9999;
-}
-
-.particle {
-  position: absolute;
-  width: 14rpx;
-  height: 14rpx;
-  border-radius: 50%;
-  animation: particle-fly 0.7s ease-out forwards;
-}
-
-@keyframes particle-fly {
-  0% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--tx), var(--ty)) scale(0.2);
-  }
-}
-
-.confetti {
-  position: absolute;
-  width: 14rpx;
-  height: 14rpx;
-  animation: confetti-fall 0.9s ease-out forwards;
-}
-
-@keyframes confetti-fall {
-  0% {
-    opacity: 1;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
-  }
-}
-
-.star {
-  position: absolute;
-  font-size: 32rpx;
-  animation: star-pop 0.5s ease-out forwards;
-}
-
-@keyframes star-pop {
-  0% {
-    opacity: 0;
-    transform: scale(0) rotate(0deg);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.2) rotate(180deg);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.6) rotate(360deg);
-  }
 }
 </style>

@@ -40,7 +40,7 @@
                 <view
                   v-if="record.color"
                   class="entry-color-dot"
-                  :style="{ backgroundColor: POOP_COLORS[record.color as PoopColor]?.color }"
+                  :style="{ backgroundColor: POOP_COLORS[record.color as PoopColor]?.color || '#ccc' }"
                 />
               </view>
 
@@ -100,7 +100,11 @@ const recentGroupedRecords = computed(() => {
   return groups
 })
 
-onMounted(() => {
+onMounted(async () => {
+  // 先确保 baby 数据已加载
+  if (babyStore.babies.length === 0) {
+    await babyStore.fetchBabies()
+  }
   recordStore.fetchRecords(babyStore.activeBabyId, { limit: 10 })
 })
 

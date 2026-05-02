@@ -94,6 +94,7 @@ import { syncService } from '@/services/sync'
 import { useStatusBar } from '@/composables/useLayout'
 import { updateRequestCache, updateServerUrlCache } from '@/utils/request'
 import { isValidUrl } from '@/utils/validator'
+import { setLoggingIn } from '@/utils/authGuard'
 
 const auth = useAuthStore()
 const syncStore = useSyncStore()
@@ -102,8 +103,8 @@ const { statusBarHeight } = useStatusBar()
 const pageTop = statusBarHeight + 80
 
 const form = reactive({
-  serverUrl: '',
-  password: '',
+  serverUrl: 'http://192.168.31.202:3000',
+  password: '123456',
   nickname: ''
 })
 
@@ -124,6 +125,7 @@ function checkSessionAndRedirect() {
   if (auth.isLoggedIn()) {
     navigating.value = true
     updateRequestCache(auth.serverUrl, auth.token)
+    setLoggingIn(true)
     uni.reLaunch({
       url: '/pages/home/index',
       complete: () => {
@@ -202,12 +204,23 @@ async function handleConnect() {
 
     await auth.login(form.password)
 
+    // 手动同步写入 Storage，确保路由守卫能立即读取
+    uni.setStorageSync('babypoop-auth', JSON.stringify({
+      token: auth.token,
+      serverUrl: auth.serverUrl,
+      operatorName: auth.operatorName
+    }))
+
     updateRequestCache(auth.serverUrl, auth.token)
     saveHistory()
     syncService.startAutoSync()
     syncStore.setStatus('synced')
 
     uni.showToast({ title: '连接成功', icon: 'success' })
+
+    // 设置登录跳转标记，让路由守卫放行
+    setLoggingIn(true)
+
     uni.reLaunch({ url: '/pages/home/index' })
   } catch (error: any) {
     uni.showToast({ title: error.message || '连接失败', icon: 'none' })

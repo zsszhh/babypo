@@ -14,13 +14,6 @@ const PARTICLE_COLORS = [
 // 星星表情
 const STAR_EMOJIS = ['✨', '⭐', '🌟', '💫', '✅', '🎉']
 
-interface ParticleOptions {
-  x: number
-  y: number
-  count?: number
-  type?: 'particle' | 'confetti' | 'stars'
-}
-
 /**
  * 保存特效组合式函数
  */

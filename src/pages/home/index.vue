@@ -17,6 +17,16 @@
         <text class="welcome-hint">今天{{ babyStore.activeBaby?.name || '宝宝' }}的便便怎么样？</text>
       </section>
 
+      <!-- 提醒横幅 -->
+      <view v-if="needReminder" class="reminder-banner" @tap="goAdd" hover-class="reminder-banner-hover">
+        <text class="material-symbols-outlined reminder-icon">notifications_active</text>
+        <view class="reminder-texts">
+          <text class="reminder-title">该记录啦！</text>
+          <text class="reminder-desc">已超过2天未记录排便情况</text>
+        </view>
+        <text class="material-symbols-outlined reminder-arrow">arrow_forward</text>
+      </view>
+
       <!-- Quick Log -->
       <quick-log-card @saved="onQuickLogSaved" />
 
@@ -86,6 +96,14 @@ const lastLogTime = computed(() => {
   if (diffH < 1) return '刚刚'
   if (diffH < 24) return `${diffH} 小时前`
   return `${Math.floor(diffH / 24)} 天前`
+})
+
+const needReminder = computed(() => {
+  const records = recordStore.sortedRecords
+  if (records.length === 0) return true
+  const last = records[0].timestamp
+  const hoursSinceLastLog = (Date.now() - last) / 3600000
+  return hoursSinceLastLog >= 48
 })
 
 const dailyAvg = computed(() => {
@@ -203,6 +221,73 @@ function goAdd() {
   font-size: 28rpx;
   color: var(--outline);
   margin-left: 104rpx;
+}
+
+/* 提醒横幅 */
+.reminder-banner {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 28rpx 32rpx;
+  background: linear-gradient(135deg, #FFF3CD, #FFE69C);
+  border-radius: 24rpx;
+  margin-bottom: 32rpx;
+  border: 2rpx solid rgba(255, 193, 7, 0.3);
+  box-shadow: 0 4rpx 16rpx rgba(255, 193, 7, 0.15);
+}
+
+.dark .reminder-banner {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.2));
+  border-color: rgba(255, 193, 7, 0.4);
+}
+
+.reminder-banner-hover {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.reminder-icon {
+  font-size: 44rpx;
+  color: #F57C00;
+}
+
+.dark .reminder-icon {
+  color: #FFB74D;
+}
+
+.reminder-texts {
+  flex: 1;
+}
+
+.reminder-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #F57C00;
+  display: block;
+}
+
+.dark .reminder-title {
+  color: #FFB74D;
+}
+
+.reminder-desc {
+  font-size: 24rpx;
+  color: #EF6C00;
+  margin-top: 2rpx;
+  display: block;
+}
+
+.dark .reminder-desc {
+  color: #FFCC80;
+}
+
+.reminder-arrow {
+  font-size: 36rpx;
+  color: #F57C00;
+}
+
+.dark .reminder-arrow {
+  color: #FFB74D;
 }
 
 /* Bento 洞察 */

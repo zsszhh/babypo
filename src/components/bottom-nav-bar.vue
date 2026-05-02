@@ -72,8 +72,19 @@ function handleSwitch(key: string) {
 }
 
 .nav-item--active {
-  color: var(--primary);
-  background: var(--primary-container);
+  color: var(--on-primary-container);
+  background: linear-gradient(135deg, var(--primary), var(--primary-fixed-dim));
+  box-shadow: 0 4rpx 12rpx rgba(59, 105, 76, 0.25);
+}
+
+.dark .nav-item--active {
+  color: #003919;
+  background: linear-gradient(135deg, #a2d3b2, #8bc9a0);
+  box-shadow: 0 4rpx 12rpx rgba(162, 211, 178, 0.3);
+}
+
+.nav-item--active .nav-icon {
+  font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
 }
 
 .nav-item-hover {

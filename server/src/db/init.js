@@ -62,6 +62,7 @@ function initDb() {
         db.run('CREATE INDEX IF NOT EXISTS idx_records_timestamp ON records(timestamp)')
         db.run('CREATE INDEX IF NOT EXISTS idx_records_updated_at ON records(updated_at)')
 
+        // 确保默认 baby 数据插入完成后再 resolve
         db.run('INSERT OR IGNORE INTO babies (id, name, birthdate, created_at, updated_at) VALUES (1, \'宝宝\', 0, ?, ?)',
           [Date.now(), Date.now()],
           (err) => {
@@ -70,10 +71,10 @@ function initDb() {
             } else {
               console.log('默认宝宝数据已就绪')
             }
+            console.log('数据库表初始化完成')
+            resolve(db)
           }
         )
-        console.log('数据库表初始化完成')
-        resolve(db)
       })
     })
   })
@@ -95,7 +96,8 @@ function closeDb() {
  * 创建参数化查询的 Promise 包装
  */
 function prepare(sql) {
-  const stmt = db.prepare(sql)
+  const database = getDb()  // 确保数据库已初始化
+  const stmt = database.prepare(sql)
   return {
     get(...params) {
       return new Promise((resolve, reject) => {
